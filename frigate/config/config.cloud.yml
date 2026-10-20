@@ -1,0 +1,151 @@
+mqtt:
+  enabled: true
+  host: mqtt
+  port: 1883
+
+# CLOUD MODE (Oracle server): generated from config.yml. Cameras come from the
+# Hik-Connect cloud via the hikcloud2rtc container, not from the DVR on the LAN.
+# Keep zones/masks in sync with config.yml (or regenerate this file).
+go2rtc:
+  streams:
+    cam2:
+      - ffmpeg:http://hikcloud2rtc:8000/stream.ts?channel=2&stream=sub#video=copy
+    cam3:
+      - ffmpeg:http://hikcloud2rtc:8000/stream.ts?channel=3&stream=sub#video=copy
+
+# CPU detection is fine for two cameras on the server's 4 ARM cores at the sub stream's resolution.
+# On an Intel mini PC, switch to OpenVINO for much lower CPU use:
+# https://docs.frigate.video/configuration/object_detectors#openvino-detector
+detectors:
+  cpu1:
+    type: cpu
+    num_threads: 3
+
+# Reads number plates of detected cars. Put your plate under the same name
+# as `my_car_name` in notifier/config.yml.
+lpr:
+  enabled: true
+  match_distance: 1 # tolerate one misread character
+  known_plates:
+    my_car:
+      - "{FRIGATE_MY_PLATE}"
+
+objects:
+  track:
+    - person
+    - car
+  filters:
+    # Parked cars in the night-time infrared picture score lower than the
+    # defaults (0.5 / 0.7) expect, so they were being missed.
+    car:
+      min_score: 0.4
+      threshold: 0.6
+
+# Old data is deleted automatically: snapshots after 3 days, alert clips after
+# 3 days, other detection clips after 1 day; no 24/7 recording is kept.
+snapshots:
+  enabled: true
+  bounding_box: true
+  retain:
+    default: 3
+
+# Keeps only short clips around alerts/detections, not 24/7 video, to save disk.
+# For continuous recording set retain.days to e.g. 2 (≈10-20 GB per day per camera).
+record:
+  enabled: true
+  alerts:
+    retain:
+      days: 3
+  detections:
+    retain:
+      days: 1
+
+cameras:
+  cam2:
+    friendly_name: Camera 02
+    ffmpeg:
+      inputs:
+        # one low-res cloud stream (~0.2-0.3 Mbit/s) used for both detection and clips
+        - path: rtsp://127.0.0.1:8554/cam2
+          input_args: preset-rtsp-restream
+          roles:
+            - detect
+            - record
+    detect:
+      enabled: true
+      fps: 5
+
+    # Zone names must match notifier/config.yml. Edit shapes in Settings -> Masks / Zones.
+    # Motion masks: areas where movement shouldn't wake the detector (saves CPU).
+    motion:
+      mask:
+        dvr_clock:
+          friendly_name: DVR clock (ticking digits)
+          coordinates: 0,0,0.31,0,0.31,0.1,0,0.1
+        shop_side:
+          friendly_name: Shop side of the lane (not parking)
+          coordinates: 0,0.1,0.28,0.1,0.28,1,0,1
+
+    zones:
+      cam2_spot1:
+        friendly_name: Camera 2 spot 1
+        coordinates: 0.478,0,0.699,0,1,0.31,1,0.917
+        objects: car
+        inertia: 5
+        enabled: true
+        loitering_time: 0
+      cam2_watch:
+        friendly_name: Camera 2 night watch
+        coordinates: 0.415,0,0.68,0,1,0.311,1,1
+        objects: person
+        inertia: 3
+    review:
+      alerts:
+        required_zones:
+          - cam2_spot1
+
+  cam3:
+    friendly_name: Camera 03
+    ffmpeg:
+      inputs:
+        # one low-res cloud stream (~0.2-0.3 Mbit/s) used for both detection and clips
+        - path: rtsp://127.0.0.1:8554/cam3
+          input_args: preset-rtsp-restream
+          roles:
+            - detect
+            - record
+    detect:
+      enabled: true
+      fps: 5
+
+    # Zone names must match notifier/config.yml. Edit shapes in Settings -> Masks / Zones.
+    # Motion masks: areas where movement shouldn't wake the detector (saves CPU).
+    motion:
+      mask:
+        dvr_clock:
+          friendly_name: DVR clock (ticking digits)
+          coordinates: 0,0,0.31,0,0.31,0.1,0,0.1
+
+    zones:
+      cam3_spot1:
+        friendly_name: Camera 3 spot 1
+        coordinates: 0,0.247,0.364,0.035,0.549,0.159,0,0.771
+        objects: car
+        inertia: 5
+        enabled: true
+        loitering_time: 0
+      cam3_watch:
+        friendly_name: Camera 3 night watch
+        coordinates: 0,0.236,0.391,0,0.613,0.13,0,0.865
+        objects: person
+        inertia: 3
+    review:
+      alerts:
+        required_zones:
+          - cam3_spot1
+version: 0.18-0
+
+
+# Web UI is only reachable from this Mac (see docker-compose.yml), so plain http is fine.
+tls:
+  enabled: false

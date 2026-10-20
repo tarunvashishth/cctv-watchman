@@ -1,0 +1,13 @@
+.env
+.gstack/
+__pycache__/
+cameras.jpg
+zones-check.jpg
+notifier/references/my_car/*.jpg
+# Third-party client with no license: users clone it themselves (see README, Cloud mode)
+hikcloud2rtc/
+# Frigate runtime data: only the config files are tracked
+frigate/storage/
+frigate/config/*
+!frigate/config/config.yml
+!frigate/config/config.cloud.yml

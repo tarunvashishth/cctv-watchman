@@ -1,0 +1,43 @@
+# Cloud mode (Oracle server): cameras come through the Hik-Connect cloud instead
+# of the DVR on the home network. Start with:
+#   docker compose -f docker-compose.yml -f docker-compose.cloud.yml up -d --build
+services:
+  hikcloud2rtc:
+    build: ./hikcloud2rtc
+    container_name: hikcloud2rtc
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    environment:
+      HIK_USER: ${HIK_USER:?set HIK_USER in .env}
+      HIK_PASSWORD: ${HIK_PASSWORD:?set HIK_PASSWORD in .env}
+      CLOUDCAM_PLATFORM: hikconnect
+      PORT: "8000"
+      DATA_DIR: /app/data
+      LOG_DIR: /app/data/logs
+      CLOUDCAM_TOKEN_FILE: /app/data/token.json
+      CLOUDCAM_CAMKEY_FILE: /app/data/cam_keys.json
+      PACE_QUEUE_MB: "2"
+      PACE_FRAMES: "1"
+      # Only stream cameras something is watching (Frigate keeps cams 2 and 3 open)
+      WORKER_MODE: idle
+      WORKER_IDLE_TIMEOUT: "90"
+      OFFLINE_RESPONSE: error
+      TZ: Asia/Kolkata
+    volumes:
+      - hikcloud_data:/app/data
+    # No ports published: only Frigate (same Docker network) reads it.
+
+  frigate:
+    environment:
+      CONFIG_FILE: /config/config.cloud.yml
+      TZ: Asia/Kolkata
+    depends_on:
+      - mqtt
+      - hikcloud2rtc
+
+volumes:
+  hikcloud_data:

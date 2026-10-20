@@ -1,0 +1,50 @@
+# Frigate cameras to listen to (names from frigate/config/config.yml)
+cameras: [cam2, cam3]
+
+# Parking areas. `zones` are Frigate zones covering the area; list several when
+# cameras see the same cars (e.g. the same row from both ends): the car count is
+# the highest count among them, so nothing is counted twice.
+parking:
+  - name: the lane
+    capacity: 6
+    zones: [cam2_spot1, cam3_spot1]
+
+# Frigate zone in front of a door (people only) -> name used in messages.
+# Door alerts are off; add e.g. `cam3_door: front door` (and the zone in Frigate) to turn them back on.
+doors: {}
+
+# Must match the name under lpr.known_plates in Frigate's config
+my_car_name: my_car
+
+# A change must last this long before you're told (filters out cars driving
+# through and detection flicker, and gives plate reading time).
+stable_seconds: 30
+# Your car must be gone this long before "your car has left" (night-time
+# detection can briefly lose a parked car).
+leave_seconds: 120
+
+# false: only tell me when the lane becomes full / gets a free space.
+# true: tell me every time the number of free spaces changes.
+notify_all_changes: false
+
+# Minimum gap between two "someone at the door" alerts
+door_cooldown_seconds: 60
+
+# Colour-based fallback for recognising your car when the plate isn't readable.
+# Teach it with the /mycar command. Raise the threshold if other cars get
+# mistaken for yours; lower it if your car isn't recognised.
+appearance_match:
+  threshold: 0.75
+
+# Night alarm: urgent alerts (Telegram + loud ntfy push on the phone) for
+# people lingering among the parked cars and your car moving.
+night_watch:
+  enabled: true
+  timezone: Asia/Kolkata
+  start_hour: 1   # 1 am
+  end_hour: 4     # 4 am (alarms stop at 4:00)
+  # Frigate zones (people) around the parked cars. Make them a bit bigger than
+  # the parking zones so someone standing at a car's bonnet is inside.
+  zones: [cam2_watch, cam3_watch]
+  linger_seconds: 20  # how long someone must stay before the alarm
+  repeat_seconds: 60  # ring again every minute while they're still there

@@ -1,0 +1,51 @@
+# Container logs are capped (3 x 10 MB per service) so they can't fill the disk.
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  frigate:
+    logging: *logging
+    image: ghcr.io/blakeblackshear/frigate:stable
+    container_name: frigate
+    restart: unless-stopped
+    shm_size: "256mb"
+    env_file: .env
+    volumes:
+      - ./frigate/config:/config
+      - ./frigate/storage:/media/frigate
+      - type: tmpfs
+        target: /tmp/cache
+        tmpfs:
+          size: 1000000000
+    ports:
+      - "127.0.0.1:8971:8971" # Frigate web UI (login required), this Mac only
+    depends_on:
+      - mqtt
+
+  mqtt:
+    logging: *logging
+    image: eclipse-mosquitto:2
+    container_name: mqtt
+    restart: unless-stopped
+    volumes:
+      - ./mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    # No ports published: only Frigate and the notifier talk to it.
+
+  notifier:
+    logging: *logging
+    build: ./notifier
+    container_name: notifier
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      MQTT_HOST: mqtt
+      FRIGATE_URL: http://frigate:5000
+    volumes:
+      - ./notifier/config.yml:/app/config.yml:ro
+      - ./notifier/references:/app/references
+    depends_on:
+      - frigate
+      - mqtt
