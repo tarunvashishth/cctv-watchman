@@ -43,8 +43,6 @@ class _HideSecrets(logging.Filter):
 
 for _h in logging.getLogger().handlers:
     _h.addFilter(_HideSecrets())
-NTFY_URL = os.environ.get("NTFY_URL", "https://ntfy.sh").rstrip("/")
-NTFY_TOPIC = os.environ.get("NTFY_TOPIC", "")
 SIP_USER = os.environ.get("SIP_USER", "")
 SIP_PASSWORD = os.environ.get("SIP_PASSWORD", "")
 SIP_CALL_TO = os.environ.get("SIP_CALL_TO", "")
@@ -136,19 +134,6 @@ def tg_send(text, photo=None):
         log.error("Telegram send failed: %s", e)
 
 
-def ntfy_alarm(text):
-    """Urgent push to the ntfy app: set to override Do Not Disturb with a loud sound."""
-    if not NTFY_TOPIC:
-        return
-    try:
-        r = requests.post(f"{NTFY_URL}/{NTFY_TOPIC}", data=text.encode(), timeout=45, headers={
-            "Title": "Parking watcher ALARM", "Priority": "urgent", "Tags": "rotating_light"})
-        if not r.ok:
-            log.error("ntfy rejected alarm: %s %s", r.status_code, r.text[:200])
-    except requests.RequestException as e:
-        log.error("ntfy send failed: %s", e)
-
-
 call_lock = threading.Lock()
 called = set()
 
@@ -175,7 +160,6 @@ def sender_loop():
         if alert.urgent:
             key = alert.event_id or f"{alert.zone}-{int(time.time() // 600)}"  # one incident per intruder
             threading.Thread(target=call_alarm, args=(alert.text, key), daemon=True).start()
-            ntfy_alarm(alert.text + "\nPicture in Telegram.")
         photo = event_snapshot(alert.event_id) if alert.event_id else None
         if not photo and alert.zone in ZONE_CAMERA:
             photo = live_frame(ZONE_CAMERA[alert.zone])
@@ -186,7 +170,6 @@ def sender_loop():
 HELP = (
     "/status – which spots are free + live pictures\n"
     "/snapshot – live pictures\n"
-    "/testalarm – ring the phone alarm (ntfy) to test it\n"
     "/testcall – get an alarm call in the Linphone app to test it\n"
     "/mycar – right after you park: teach me what your car looks like "
     "(uses the car that arrived most recently)"
@@ -206,11 +189,6 @@ def handle_command(text):
         send_live("📷 Live")
     elif cmd == "/snapshot":
         send_live("📷 Live")
-    elif cmd == "/testalarm":
-        if not NTFY_TOPIC:
-            return tg_send("No NTFY_TOPIC set in .env.")
-        ntfy_alarm("🔔 Test alarm. If you heard this loudly, night alarms are working.")
-        tg_send("Sent a test alarm to ntfy. Your phone should ring now.")
     elif cmd == "/testcall":
         if not (SIP_USER and SIP_PASSWORD and SIP_CALL_TO):
             return tg_send("Set SIP_USER, SIP_PASSWORD and SIP_CALL_TO in .env first.")

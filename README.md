@@ -104,23 +104,9 @@ Between **1 am and 4 am** (`night_watch` in [notifier/config.yml](notifier/confi
 - 🚨 someone stays among the parked cars for 20+ seconds (repeats every minute while they're there)
 - 🚨 your car drives out of its spot
 
-Each alarm goes to Telegram with a picture, and also to the free, open-source **ntfy** app as a loud, high-priority push. The ntfy push is text only, so no camera pictures go through the public ntfy server.
+Each alarm goes to Telegram with a picture, and also rings your phone (below).
 
-**Phone setup (Android, once):**
-1. Install **ntfy** from the Play Store or F-Droid.
-2. Tap **+**, and subscribe to the topic shown by:
-   ```bash
-   grep NTFY_TOPIC .env
-   ```
-   Use the part after `=` and keep the server as `ntfy.sh`. The topic name works like a password, so don't share it.
-3. Open Android **Settings → Apps → ntfy → Notifications** and choose the **Max priority** category:
-   - turn on **Override Do Not Disturb**
-   - pick a loud alarm sound
-   - set the importance to Urgent / pop on screen
-4. Exempt ntfy from battery optimisation (**Settings → Apps → ntfy → Battery → Unrestricted**), so the phone doesn't delay alarms while asleep.
-5. Send `/testalarm` to the Telegram bot. The phone should ring.
-
-**Phone call over the internet (Linphone, free and open source):** night alarms also ring the **Linphone** app on your phone like a real call, one call per intruder. If you answer, you hear the alarm read out and a siren. The Mac places the call with [baresip](https://github.com/baresip/baresip), using free accounts from [sip.linphone.org](https://subscribe.linphone.org/).
+**Phone call over the internet (Linphone, free and open source):** night alarms ring the **Linphone** app on your phone like a real call, one call per intruder. If you answer, you hear the alarm read out and a siren. The Mac places the call with [baresip](https://github.com/baresip/baresip), using free accounts from [sip.linphone.org](https://subscribe.linphone.org/).
 1. At https://subscribe.linphone.org/ create a free account.
 2. Install **Linphone** (Play Store or F-Droid) on the phone and sign in with it. Linphone requires encrypted call audio; the caller uses SRTP for this.
 3. On the S23, set **Settings → Apps → Linphone → Battery → Unrestricted**. In Linphone's settings, enable keeping the app running in the background if offered, so it can ring while the phone sleeps. Allow Linphone through Do Not Disturb, and keep the phone on sound, not silent.
@@ -161,7 +147,6 @@ Nothing needs manual deleting:
 | `/status` | Each spot (free / your car / another car) + live picture |
 | `/snapshot` | Live picture |
 | `/mycar` | Right after you park: save the newest parked car as "my car" (colour reference) |
-| `/testalarm` | Ring the phone alarm (ntfy) to test it |
 | `/testcall` | Ring the Linphone app with a test alarm call |
 
 ## Troubleshooting
@@ -192,7 +177,6 @@ CCTV Watchman is glue and alert logic on top of other people's open-source work.
 | [cloud-cam-viewer](https://github.com/Bahrombekk/cloud-cam-viewer), [hikcloudstream](https://github.com/cristianojmiranda/hikcloudstream), [pyEzvizApi](https://github.com/RenierM26/pyEzvizApi) | The foundations hikcloud2rtc is built on | MIT / Apache-2.0 / Apache-2.0 |
 | [baresip](https://github.com/baresip/baresip) and [re](https://github.com/baresip/re) | SIP phone calls for the night alarm (built from source in the notifier image) | BSD-3-Clause |
 | [Linphone](https://linphone.org) | Free SIP accounts and the phone app that rings | GPL-3.0 (app) |
-| [ntfy](https://github.com/binwiederhier/ntfy) (Philipp Heckel) | Loud push alerts to the phone | Apache-2.0 / GPL-2.0 |
 | [Eclipse Mosquitto](https://github.com/eclipse-mosquitto/mosquitto) | MQTT broker between Frigate and the notifier | EPL-2.0 / EDL-1.0 |
 | [eSpeak NG](https://github.com/espeak-ng/espeak-ng) | Reads the alarm aloud on calls (separate binary in the notifier image) | GPL-3.0 |
 | [OpenCV](https://opencv.org), [NumPy](https://numpy.org), [paho-mqtt](https://github.com/eclipse/paho.mqtt.python), [Requests](https://github.com/psf/requests), [PyYAML](https://github.com/yaml/pyyaml) | Colour matching and plumbing in the notifier | Apache-2.0 / BSD / EPL / MIT |

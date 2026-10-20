@@ -36,7 +36,7 @@ door_cooldown_seconds: 60
 appearance_match:
   threshold: 0.75
 
-# Night alarm: urgent alerts (Telegram + loud ntfy push on the phone) for
+# Night alarm: urgent alerts (Telegram + a phone call) for
 # people lingering among the parked cars and your car moving.
 night_watch:
   enabled: true
